@@ -1,0 +1,61 @@
+from flask import Flask, request, jsonify
+import openai
+
+# Initialize Flask app
+app = Flask(__name__)
+
+# Set up OpenAI API key
+openai.api_key = 'your_openai_api_key'
+
+# Define chatbot behavior
+FAQ_PROMPT = """
+You are a helpful assistant knowledgeable about fertility and IVF (In Vitro Fertilization) services. Answer questions concisely and accurately. If a user provides personal details, collect them politely for follow-up.
+"""
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.json
+    user_message = data.get('message', '')
+
+    # Ensure the message is not empty
+    if not user_message:
+        return jsonify({"error": "Message is required."}), 400
+
+    # Generate a response using OpenAI's GPT model
+    try:
+        response = openai.Completion.create(
+            engine="text-davinci-003",
+            prompt=f"{FAQ_PROMPT}\nUser: {user_message}\nChatbot:",
+            max_tokens=200,
+            temperature=0.7,
+        )
+
+        bot_message = response.choices[0].text.strip()
+        return jsonify({"response": bot_message})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/collect-details', methods=['POST'])
+def collect_details():
+    data = request.json
+    name = data.get('name', '')
+    email = data.get('email', '')
+    phone = data.get('phone', '')
+    
+    if not (name and email and phone):
+        return jsonify({"error": "Name, email, and phone are required."}), 400
+
+    # Save customer details for follow-up (In a real-world app, save to a database)
+    # For now, we just simulate saving details
+    customer_details = {
+        "name": name,
+        "email": email,
+        "phone": phone
+    }
+
+    return jsonify({"message": "Details collected successfully.", "details": customer_details})
+
+# Run the Flask app
+if __name__ == '__main__':
+    app.run(debug=True)
